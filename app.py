@@ -3,6 +3,7 @@ import pandas as pd
 from rag_retriever import RAGRetriever
 from llm_interface import GroqLLM
 import time
+import os
 
 # Page configuration
 st.set_page_config(
@@ -11,6 +12,47 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+def run_setup_if_needed():
+    """Run setup if FAISS index doesn't exist."""
+    index_path = os.path.join("faiss_index", "loan_data.index")
+    dataset_path = "Training Dataset.csv"
+    
+    if not os.path.exists(index_path) or not os.path.exists(dataset_path):
+        st.error("⚠️ Setup required! Please run the setup first.")
+        
+        with st.expander("🛠️ Setup Instructions", expanded=True):
+            st.markdown("""
+            **Missing required files:**
+            - `Training Dataset.csv` (place in project root)
+            - FAISS index files (generated during setup)
+            
+            **To set up locally:**
+            ```bash
+            python setup.py
+            ```
+            
+            **For Streamlit Cloud deployment:**
+            The setup should run automatically, but if it fails:
+            1. Ensure `Training Dataset.csv` is in your repository
+            2. Check that all dependencies are properly installed
+            3. Try restarting the app
+            """)
+        
+        if st.button("🚀 Try Auto Setup"):
+            try:
+                with st.spinner("Running setup... This may take a few minutes."):
+                    # Try to run setup automatically
+                    from setup import main as setup_main
+                    setup_main()
+                    st.success("✅ Setup completed! Please refresh the page.")
+                    st.rerun()
+            except Exception as e:
+                st.error(f"❌ Setup failed: {str(e)}")
+                st.info("Please run `python setup.py` locally first.")
+        
+        return False
+    return True
 
 # Custom CSS for modern UI
 st.markdown("""
@@ -238,6 +280,10 @@ def display_sources(sources):
             """, unsafe_allow_html=True)
 
 def main():
+    # Run setup if needed
+    if not run_setup_if_needed():
+        return
+    
     # Header
     st.markdown('<h1 class="main-header">🤖 LoanQuery AI</h1>', unsafe_allow_html=True)
     st.markdown('<p class="subtitle">Get AI-powered insights about loan approval patterns using advanced RAG technology</p>', unsafe_allow_html=True)
